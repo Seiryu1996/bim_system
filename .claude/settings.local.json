@@ -6,7 +6,11 @@
       "Bash(rm:*)",
       "Bash(docker-compose build:*)",
       "Bash(docker-compose logs:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(cp:*)",
+      "Bash(docker-compose:*)",
+      "Bash(touch:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

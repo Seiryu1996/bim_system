@@ -3,7 +3,7 @@ import { authService } from '../services/authService';
 import { AuthState, LoginRequest, RegisterRequest, AuthResponse } from '../types';
 
 const initialState: AuthState = {
-  user: null,
+  user: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null,
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
   isLoading: false,
@@ -16,6 +16,7 @@ export const login = createAsyncThunk(
     try {
       const response = await authService.login(credentials);
       localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Login failed');
@@ -29,6 +30,7 @@ export const register = createAsyncThunk(
     try {
       const response = await authService.register(userData);
       localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Registration failed');
@@ -42,6 +44,7 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;

@@ -34,6 +34,36 @@ Go言語バックエンド、Reactフロントエンド、PostgreSQLデータベ
 
 ## クイックスタート
 
+### 開発環境（ホットリロード）- 推奨
+
+1. **リポジトリをクローン**
+   ```bash
+   git clone <repository-url>
+   cd bim_system
+   ```
+
+2. **環境変数を設定**
+   ```bash
+   cp .env.example .env
+   # .envファイルを編集して設定を記入
+   ```
+
+3. **開発環境をビルド・起動**
+   ```bash
+   # ホットリロード環境でビルド
+   docker-compose -f docker-compose.dev.yml build
+   
+   # 起動
+   docker-compose -f docker-compose.dev.yml up -d
+   ```
+
+4. **アプリケーションにアクセス**
+   - フロントエンド: http://localhost:3000
+   - バックエンドAPI: http://localhost:8080
+   - データベース: localhost:5432
+
+### 本番環境
+
 1. **リポジトリをクローン**
    ```bash
    git clone <repository-url>
@@ -69,8 +99,18 @@ Go言語バックエンド、Reactフロントエンド、PostgreSQLデータベ
 
 ### フロントエンド
 - `VITE_API_URL`: バックエンドAPI URL (デフォルト: http://localhost:8080)
-- `VITE_FORGE_CLIENT_ID`: Autodesk Forge クライアントID
-- `VITE_FORGE_CLIENT_SECRET`: Autodesk Forge クライアントシークレット
+
+### Forge認証（バックエンド）
+- `FORGE_CLIENT_ID`: Autodesk Forge クライアントID
+- `FORGE_CLIENT_SECRET`: Autodesk Forge クライアントシークレット
+
+## Forge App設定
+
+1. [Autodesk Forge Console](https://forge.autodesk.com/)でアプリケーションを作成
+2. 以下のAPIを有効化:
+   - Model Derivative API
+   - Data Management API
+3. Client IDとClient Secretを`.env`ファイルに設定
 
 ## APIエンドポイント
 
@@ -91,6 +131,20 @@ Go言語バックエンド、Reactフロントエンド、PostgreSQLデータベ
 
 ## 開発
 
+### 開発環境の種類
+
+#### 1. ホットリロード開発環境（推奨）
+- **ファイル変更時の自動リロード**
+  - バックエンド: Air toolによるGo自動リスタート
+  - フロントエンド: Vite HMRによるReact自動更新
+- **Docker Compose設定**: `docker-compose.dev.yml`
+- **ボリュームマウント**: ソースコードの変更が即座に反映
+
+#### 2. 本番環境
+- **最適化されたビルド**: 軽量なコンテナ
+- **Docker Compose設定**: `docker-compose.yml`
+- **単一バイナリ**: 最小限のリソース使用
+
 ### バックエンド開発
 ```bash
 cd backend
@@ -106,16 +160,45 @@ npm run dev
 ```
 
 ### Docker開発
+
+#### 本番環境
 ```bash
-# 標準のDockerfileを使用
+# コンテナをビルド
 docker-compose build
 
-# チェックサムエラーが発生する場合、シンプルなDockerfileを使用
-docker-compose -f docker-compose.yml build
-
-# コンテナを起動
+# システムを起動
 docker-compose up -d
+
+# ログを確認
+docker-compose logs -f
+
+# 停止
+docker-compose down
 ```
+
+#### ホットリロード開発環境（推奨）
+```bash
+# 開発環境をビルド
+docker-compose -f docker-compose.dev.yml build
+
+# ホットリロードで起動
+docker-compose -f docker-compose.dev.yml up -d
+
+# ログを確認
+docker-compose -f docker-compose.dev.yml logs -f
+
+# 停止
+docker-compose -f docker-compose.dev.yml down
+```
+
+**ホットリロード機能:**
+- **バックエンド**: Goファイルを変更すると自動でサーバーが再起動
+- **フロントエンド**: React/TypeScriptファイルを変更すると即座にブラウザに反映
+- **開発効率**: コードの変更が即座に確認できるため開発速度が向上
+
+**トラブルシューティング:**
+- go.sumファイルが見つからない場合: `go mod tidy`を自動実行
+- 依存関係エラー: `GOSUMDB=off`と`GOPROXY=direct`を設定済み
 
 ## デプロイ
 
@@ -146,7 +229,12 @@ bim_system/
 │   ├── handlers/        # HTTPハンドラー
 │   ├── middleware/      # 認証およびCORSミドルウェア
 │   ├── models/          # データモデル
-│   ├── Dockerfile       # バックエンドコンテナ
+│   ├── migrations/      # データベースマイグレーション
+│   ├── tmp/             # Air一時ファイル
+│   ├── .air.toml        # Air設定（ホットリロード）
+│   ├── Dockerfile       # 本番用コンテナ
+│   ├── Dockerfile.dev   # 開発用コンテナ（ホットリロード）
+│   ├── Dockerfile.simple # 簡易ビルド用
 │   ├── go.mod           # Goモジュール
 │   └── main.go          # アプリケーションエントリーポイント
 ├── frontend/
@@ -157,10 +245,12 @@ bim_system/
 │   │   ├── types/       # TypeScript型定義
 │   │   └── utils/       # ユーティリティ関数
 │   ├── public/          # 静的アセット
-│   ├── Dockerfile       # フロントエンドコンテナ
+│   ├── Dockerfile       # 本番用コンテナ
+│   ├── Dockerfile.dev   # 開発用コンテナ（ホットリロード）
 │   ├── package.json     # Node.js依存関係
 │   └── vite.config.ts   # Vite設定
-├── docker-compose.yml   # 開発環境
+├── docker-compose.yml   # 本番環境
+├── docker-compose.dev.yml # 開発環境（ホットリロード）
 ├── render.yaml          # Renderデプロイ設定
 └── README.md           # このファイル
 ```

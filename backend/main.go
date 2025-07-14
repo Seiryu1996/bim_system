@@ -32,6 +32,8 @@ func main() {
 	// Handlers
 	authHandler := handlers.NewAuthHandler(db, cfg.JWTSecret)
 	projectHandler := handlers.NewProjectHandler(db)
+	forgeHandler := handlers.NewForgeHandler()
+	uploadHandler := handlers.NewUploadHandler()
 
 	// Auth routes
 	e.POST("/auth/register", authHandler.Register)
@@ -49,11 +51,17 @@ func main() {
 	api.DELETE("/projects/:id", projectHandler.DeleteProject)
 	api.PATCH("/projects/:id/objects/:objectId", projectHandler.UpdateObjectProperties)
 
+	// Forge routes
+	api.POST("/forge/token", forgeHandler.GetForgeToken)
+	api.POST("/forge/upload", uploadHandler.UploadToForge)
+	api.GET("/forge/status/:urn", uploadHandler.CheckTranslationStatus)
+
 	// Health check
 	e.GET("/health", func(c echo.Context) error {
 		return c.JSON(200, map[string]string{"status": "ok"})
 	})
 
 	log.Printf("Server starting on port %s", cfg.Port)
+	log.Printf("Upload functionality enabled")
 	log.Fatal(e.Start(":" + cfg.Port))
 }

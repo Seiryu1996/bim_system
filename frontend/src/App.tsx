@@ -13,6 +13,8 @@ function App() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { currentProject } = useSelector((state: RootState) => state.project);
 
+  console.log('App: isAuthenticated =', isAuthenticated, 'user =', user, 'currentProject =', currentProject);
+
   const handleLogout = () => {
     dispatch(logout());
     dispatch(setCurrentProject(null));

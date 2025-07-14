@@ -15,8 +15,12 @@ export const fetchProjects = createAsyncThunk(
   'project/fetchProjects',
   async (_, { rejectWithValue }) => {
     try {
-      return await projectService.getProjects();
+      console.log('Redux: fetchProjects開始');
+      const result = await projectService.getProjects();
+      console.log('Redux: fetchProjects成功', result);
+      return result;
     } catch (error: any) {
+      console.error('Redux: fetchProjects失敗', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch projects');
     }
   }
@@ -93,7 +97,7 @@ const projectSlice = createSlice({
       })
       .addCase(fetchProjects.fulfilled, (state, action: PayloadAction<Project[]>) => {
         state.isLoading = false;
-        state.projects = action.payload;
+        state.projects = action.payload || [];
       })
       .addCase(fetchProjects.rejected, (state, action) => {
         state.isLoading = false;
@@ -105,7 +109,11 @@ const projectSlice = createSlice({
       })
       .addCase(createProject.fulfilled, (state, action: PayloadAction<Project>) => {
         state.isLoading = false;
-        state.projects.push(action.payload);
+        if (state.projects) {
+          state.projects.push(action.payload);
+        } else {
+          state.projects = [action.payload];
+        }
       })
       .addCase(createProject.rejected, (state, action) => {
         state.isLoading = false;

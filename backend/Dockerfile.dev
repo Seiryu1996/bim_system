@@ -1,0 +1,34 @@
+FROM golang:1.22-alpine AS dev
+
+WORKDIR /app
+
+# Install git and other necessary packages
+RUN apk add --no-cache git
+
+# Install air for hot reloading
+RUN go install github.com/cosmtrek/air@v1.49.0
+
+# Copy go mod file
+COPY go.mod ./
+
+# Set environment variables for Go modules
+ENV GOSUMDB=off
+ENV GOPROXY=direct
+
+# Download dependencies
+RUN go mod tidy && go mod download
+
+# Copy source code
+COPY . .
+
+# Run go mod tidy after copying source to resolve all dependencies
+RUN go mod tidy
+
+# Create tmp directory for air
+RUN mkdir -p tmp
+
+# Expose port
+EXPOSE 8080
+
+# Use air for hot reloading
+CMD ["air", "-c", ".air.toml"]

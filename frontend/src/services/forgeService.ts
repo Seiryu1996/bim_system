@@ -1,26 +1,27 @@
 import axios from 'axios';
 import { ForgeToken } from '../types';
 
-const FORGE_CLIENT_ID = import.meta.env.VITE_FORGE_CLIENT_ID;
-const FORGE_CLIENT_SECRET = import.meta.env.VITE_FORGE_CLIENT_SECRET;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+// Axiosインスタンスを作成してJWTトークンを自動で追加
+const apiClient = axios.create({
+  baseURL: API_URL,
+});
+
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export const forgeService = {
   async getAccessToken(): Promise<string> {
     try {
-      const response = await axios.post(
-        'https://developer.api.autodesk.com/authentication/v1/authenticate',
-        {
-          client_id: FORGE_CLIENT_ID,
-          client_secret: FORGE_CLIENT_SECRET,
-          grant_type: 'client_credentials',
-          scope: 'data:read data:write'
-        },
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
+      const response = await apiClient.post('/api/forge/token', {
+        scope: 'data:read data:write'
+      });
       
       return response.data.access_token;
     } catch (error) {
@@ -31,20 +32,9 @@ export const forgeService = {
 
   async getForgeViewerToken(): Promise<string> {
     try {
-      const response = await axios.post(
-        'https://developer.api.autodesk.com/authentication/v1/authenticate',
-        {
-          client_id: FORGE_CLIENT_ID,
-          client_secret: FORGE_CLIENT_SECRET,
-          grant_type: 'client_credentials',
-          scope: 'viewables:read'
-        },
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
+      const response = await apiClient.post('/api/forge/token', {
+        scope: 'viewables:read'
+      });
       
       return response.data.access_token;
     } catch (error) {

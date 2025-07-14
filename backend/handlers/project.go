@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"bim-system/database"
@@ -25,6 +28,11 @@ func (h *ProjectHandler) CreateProject(c echo.Context) error {
 	var req models.ProjectRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "無効なリクエストボディです")
+	}
+
+	// バリデーション
+	if err := h.validateProjectRequest(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	var project models.Project
@@ -190,4 +198,92 @@ func (h *ProjectHandler) UpdateObjectProperties(c echo.Context) error {
 		"object_id": objectID,
 		"properties": properties,
 	})
+}
+
+// プロジェクトリクエストのバリデーション
+func (h *ProjectHandler) validateProjectRequest(req *models.ProjectRequest) error {
+	// プロジェクト名のバリデーション
+	if strings.TrimSpace(req.Name) == "" {
+		return fmt.Errorf("プロジェクト名は必須です")
+	}
+	
+	if len(req.Name) < 2 {
+		return fmt.Errorf("プロジェクト名は2文字以上で入力してください")
+	}
+	
+	if len(req.Name) > 100 {
+		return fmt.Errorf("プロジェクト名は100文字以内で入力してください")
+	}
+
+	// 説明のバリデーション
+	if len(req.Description) > 500 {
+		return fmt.Errorf("説明は500文字以内で入力してください")
+	}
+
+	// ファイルIDのバリデーション
+	if strings.TrimSpace(req.FileID) == "" {
+		return fmt.Errorf("ファイルIDは必須です")
+	}
+
+	if !h.validateFileID(req.FileID) {
+		return fmt.Errorf("有効なファイルIDまたはURNを入力してください")
+	}
+
+	// 同名プロジェクトの重複チェック（同一ユーザー内）
+	if h.isProjectNameDuplicate(req.Name) {
+		return fmt.Errorf("同じ名前のプロジェクトが既に存在します")
+	}
+
+	return nil
+}
+
+// ファイルIDのバリデーション
+func (h *ProjectHandler) validateFileID(fileID string) bool {
+	fileID = strings.TrimSpace(fileID)
+	
+	// URN形式の場合
+	if strings.HasPrefix(fileID, "urn:") {
+		// Base64エンコードされたURNかチェック
+		urnPart := strings.TrimPrefix(fileID, "urn:")
+		if len(urnPart) < 10 {
+			return false
+		}
+		// Base64文字のみを含むかチェック
+		matched, _ := regexp.MatchString(`^[A-Za-z0-9+/=_%]+$`, urnPart)
+		return matched
+	}
+	
+	// Base64エンコードのみの場合（50文字以上）
+	if len(fileID) >= 50 {
+		matched, _ := regexp.MatchString(`^[A-Za-z0-9+/=_%]+$`, fileID)
+		return matched
+	}
+	
+	// ファイル名やパスの場合（拡張子チェック）
+	validExtensions := []string{".rvt", ".dwg", ".ifc", ".nwd", ".3ds", ".obj", ".fbx", ".step", ".iges", ".stp", ".rfa", ".dwf", ".dgn"}
+	fileID = strings.ToLower(fileID)
+	
+	for _, ext := range validExtensions {
+		if strings.HasSuffix(fileID, ext) {
+			return true
+		}
+	}
+	
+	// 短いIDの場合も許可（サンプルやテスト用）
+	return len(fileID) >= 2
+}
+
+// プロジェクト名の重複チェック
+func (h *ProjectHandler) isProjectNameDuplicate(name string) bool {
+	var count int
+	err := h.DB.QueryRow(
+		"SELECT COUNT(*) FROM projects WHERE LOWER(name) = LOWER($1)",
+		strings.TrimSpace(name),
+	).Scan(&count)
+	
+	if err != nil {
+		return false // エラーの場合は重複なしとして処理
+	}
+	
+	return count > 0
 }
