@@ -1,0 +1,9 @@
+go.sum
+.git
+.gitignore
+README.md
+Dockerfile
+Dockerfile.prod
+.dockerignore
+tmp/
+vendor/

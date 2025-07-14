@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	"bim-system/config"
 
@@ -18,7 +19,7 @@ func New(cfg *config.Config) (*DB, error) {
 	var dbURL string
 	
 	// Check if DATABASE_URL is set (for Render deployment)
-	if dbURL = cfg.DBHost; dbURL == "" {
+	if dbURL = os.Getenv("DATABASE_URL"); dbURL == "" {
 		dbURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 			cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
 	}

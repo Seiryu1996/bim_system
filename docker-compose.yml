@@ -21,7 +21,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.simple
     ports:
       - "8080:8080"
     environment:
@@ -35,9 +35,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/tmp
+    restart: unless-stopped
 
   frontend:
     build:
@@ -51,9 +49,7 @@ services:
       - VITE_FORGE_CLIENT_SECRET=your-forge-client-secret
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    restart: unless-stopped
 
 volumes:
   postgres_data:

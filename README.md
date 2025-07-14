@@ -105,6 +105,18 @@ npm install
 npm run dev
 ```
 
+### Docker開発
+```bash
+# 標準のDockerfileを使用
+docker-compose build
+
+# チェックサムエラーが発生する場合、シンプルなDockerfileを使用
+docker-compose -f docker-compose.yml build
+
+# コンテナを起動
+docker-compose up -d
+```
+
 ## デプロイ
 
 ### Renderデプロイ
