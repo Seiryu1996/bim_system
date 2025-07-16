@@ -10,7 +10,10 @@
       "Bash(cp:*)",
       "Bash(docker-compose:*)",
       "Bash(touch:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(docker compose:*)",
+      "Bash(go run:*)",
+      "Bash(npm:*)"
     ],
     "deny": []
   }
