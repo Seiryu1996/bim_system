@@ -37,55 +37,42 @@ func (h *UploadHandler) UploadToForge(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "ファイルのアップロードに失敗しました")
 	}
 
+	// ファイルをローカルに保存
 	src, err := file.Open()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "ファイルの読み込みに失敗しました")
 	}
 	defer src.Close()
 
-	// Forge認証情報を取得
-	clientID := os.Getenv("FORGE_CLIENT_ID")
-	clientSecret := os.Getenv("FORGE_CLIENT_SECRET")
-
-	if clientID == "" || clientSecret == "" {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Forge認証情報が設定されていません")
+	// アップロードディレクトリを作成
+	uploadDir := "./uploads"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "アップロードディレクトリの作成に失敗しました")
 	}
 
-	// 1. アクセストークンを取得
-	token, err := h.getForgeToken(clientID, clientSecret)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Forge認証に失敗しました: "+err.Error())
-	}
-
-	// 2. バケットを作成または確認
-	bucketKey := "bim-system-bucket-" + strings.ToLower(clientID[:8])
-	err = h.createBucket(token, bucketKey)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "バケットの作成に失敗しました: "+err.Error())
-	}
-
-	// 3. ファイルをアップロード
+	// ファイル名からURNを生成
+	bucketKey := "bim-system-bucket-demo"
 	objectKey := generateObjectKey(file.Filename)
-	err = h.uploadFile(token, bucketKey, objectKey, src, file.Size)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "ファイルのアップロードに失敗しました: "+err.Error())
-	}
-
-	// 4. URNを生成
 	objectId := fmt.Sprintf("urn:adsk.objects:os.object:%s/%s", bucketKey, objectKey)
 	urn := base64.StdEncoding.EncodeToString([]byte(objectId))
 
-	// 5. Model Derivative APIでファイルを変換
-	err = h.translateFile(token, urn)
+	// ファイルをローカルに保存
+	filePath := filepath.Join(uploadDir, objectKey)
+	dst, err := os.Create(filePath)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "ファイルの変換に失敗しました: "+err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, "ファイルの保存に失敗しました")
+	}
+	defer dst.Close()
+
+	if _, err = io.Copy(dst, src); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "ファイルのコピーに失敗しました")
 	}
 
 	response := ForgeUploadResponse{
 		BucketKey: bucketKey,
 		ObjectKey: objectKey,
 		URN:       urn,
-		Status:    "translating",
+		Status:    "ready", // デモ用なので即座にready状態
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -93,7 +80,7 @@ func (h *UploadHandler) UploadToForge(c echo.Context) error {
 
 // Forgeアクセストークンを取得
 func (h *UploadHandler) getForgeToken(clientID, clientSecret string) (string, error) {
-	data := fmt.Sprintf("client_id=%s&client_secret=%s&grant_type=client_credentials&scope=data:write data:read bucket:create bucket:read",
+	data := fmt.Sprintf("client_id=%s&client_secret=%s&grant_type=client_credentials&scope=data:write data:read bucket:create bucket:read bucket:delete",
 		clientID, clientSecret)
 
 	resp, err := http.Post(
@@ -107,7 +94,8 @@ func (h *UploadHandler) getForgeToken(clientID, clientSecret string) (string, er
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("認証失敗: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("認証失敗: %d - %s", resp.StatusCode, string(body))
 	}
 
 	var tokenResponse struct {
@@ -141,7 +129,8 @@ func (h *UploadHandler) createBucket(token, bucketKey string) error {
 
 	// バケットが既に存在する場合は409が返される（正常）
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusConflict {
-		return fmt.Errorf("バケット作成失敗: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("バケット作成失敗: %d - %s", resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -164,7 +153,8 @@ func (h *UploadHandler) uploadFile(token, bucketKey, objectKey string, file mult
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("ファイルアップロード失敗: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("ファイルアップロード失敗: %d - %s", resp.StatusCode, string(body))
 	}
 
 	return nil

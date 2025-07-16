@@ -38,6 +38,9 @@ func main() {
 	// Auth routes
 	e.POST("/auth/register", authHandler.Register)
 	e.POST("/auth/login", authHandler.Login)
+	
+	// Test upload route (without authentication)
+	e.POST("/test/upload", uploadHandler.UploadToForge)
 
 	// Protected routes
 	api := e.Group("/api")

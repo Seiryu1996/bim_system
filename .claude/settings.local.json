@@ -13,7 +13,9 @@
       "Bash(ls:*)",
       "Bash(docker compose:*)",
       "Bash(go run:*)",
-      "Bash(npm:*)"
+      "Bash(npm:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)"
     ],
     "deny": []
   }

@@ -141,8 +141,9 @@ const ProjectList: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/forge/upload', {
+      const response = await fetch(`${API_URL}/api/forge/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -151,7 +152,9 @@ const ProjectList: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('アップロードに失敗しました');
+        const errorText = await response.text();
+        console.error('Upload error response:', errorText);
+        throw new Error(`アップロードに失敗しました (${response.status}): ${errorText}`);
       }
 
       const result = await response.json();
@@ -180,8 +183,9 @@ const ProjectList: React.FC = () => {
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
 
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/forge/upload', {
+      const response = await fetch(`${API_URL}/api/forge/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -190,7 +194,9 @@ const ProjectList: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('アップロードに失敗しました');
+        const errorText = await response.text();
+        console.error('Upload error response:', errorText);
+        throw new Error(`アップロードに失敗しました (${response.status}): ${errorText}`);
       }
 
       const result = await response.json();
@@ -310,30 +316,18 @@ const ProjectList: React.FC = () => {
                   </p>
                 </div>
                 
-                {/* または手動入力 */}
-                <div className="text-center text-sm text-gray-500 mb-3">または</div>
-                
-                <input
-                  type="text"
-                  value={formData.file_id}
-                  onChange={(e) => setFormData({ ...formData, file_id: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                    validationErrors.file_id ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                  }`}
-                  placeholder="例: building-model.rvt, my-project.dwg, または Forge URN"
-                  required
-                />
-                {validationErrors.file_id && (
-                  <p className="text-red-500 text-sm mt-1">{validationErrors.file_id}</p>
+                {/* ファイルIDが設定されていない場合の警告 */}
+                {!formData.file_id && (
+                  <div className="text-center text-sm text-red-500 mb-3">
+                    ファイルをアップロードまたは3Dモデルを作成してください
+                  </div>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
-                  ファイル名、パス、またはAutodesk Forge URNを手動入力
-                </p>
               </div>
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
+                  disabled={!formData.file_id}
+                  className="flex-1 bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   作成
                 </button>
