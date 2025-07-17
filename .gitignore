@@ -54,3 +54,7 @@ main
 # Temporary files
 .tmp/
 temp/
+
+# Uploads
+uploads/
+backend/uploads/

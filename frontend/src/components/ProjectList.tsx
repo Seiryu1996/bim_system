@@ -19,7 +19,6 @@ const ProjectList: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('ProjectList: fetchProjects開始');
     dispatch(fetchProjects() as any);
   }, [dispatch]);
 
@@ -100,7 +99,6 @@ const ProjectList: React.FC = () => {
       setFormData({ name: '', description: '', file_id: '' });
       setValidationErrors({});
     } catch (error: any) {
-      console.error('Failed to create project:', error);
       // サーバーエラーをバリデーションエラーとして表示
       if (error.response?.data?.message) {
         setValidationErrors({ general: error.response.data.message });
@@ -128,7 +126,7 @@ const ProjectList: React.FC = () => {
     try {
       await dispatch(createProject(sampleProject) as any);
     } catch (error) {
-      console.error('Failed to create sample project:', error);
+      // サンプルプロジェクト作成失敗時は静寂に処理
     }
   };
 
@@ -153,7 +151,6 @@ const ProjectList: React.FC = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Upload error response:', errorText);
         throw new Error(`アップロードに失敗しました (${response.status}): ${errorText}`);
       }
 
@@ -166,9 +163,8 @@ const ProjectList: React.FC = () => {
         name: prev.name || file.name.replace(/\.[^/.]+$/, ''), // 拡張子を除いたファイル名
       }));
 
-      alert('ファイルのアップロードが完了しました。変換には数分かかる場合があります。');
-    } catch (error) {
-      console.error('Upload failed:', error);
+      alert('ファイルのアップロードが完了しました。3Dモデルの準備ができました。');
+    } catch (error: any) {
       alert('ファイルのアップロードに失敗しました: ' + error.message);
     } finally {
       setIsUploading(false);
@@ -195,7 +191,6 @@ const ProjectList: React.FC = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Upload error response:', errorText);
         throw new Error(`アップロードに失敗しました (${response.status}): ${errorText}`);
       }
 
@@ -209,16 +204,14 @@ const ProjectList: React.FC = () => {
       }));
 
       setShowCreateForm(true);
-      alert('3Dモデルファイルが作成され、アップロードが完了しました。');
+      alert('3Dモデルの準備が完了しました。プロジェクト情報を入力してください。');
     } catch (error: any) {
-      console.error('Upload failed:', error);
       alert('ファイルのアップロードに失敗しました: ' + error.message);
     } finally {
       setIsUploading(false);
     }
   };
 
-  console.log('ProjectList: isLoading =', isLoading, 'error =', error, 'projects =', projects);
 
   if (isLoading) {
     return <div className="text-center py-8">プロジェクトを読み込み中...</div>;
@@ -316,8 +309,17 @@ const ProjectList: React.FC = () => {
                   </p>
                 </div>
                 
-                {/* ファイルIDが設定されていない場合の警告 */}
-                {!formData.file_id && (
+                {/* ファイルIDの状態表示 */}
+                {formData.file_id ? (
+                  <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded">
+                    <p className="text-sm text-green-700">
+                      ✅ ファイルが選択されています
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1 truncate">
+                      File ID: {formData.file_id.substring(0, 50)}...
+                    </p>
+                  </div>
+                ) : (
                   <div className="text-center text-sm text-red-500 mb-3">
                     ファイルをアップロードまたは3Dモデルを作成してください
                   </div>

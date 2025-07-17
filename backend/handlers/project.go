@@ -24,14 +24,19 @@ func NewProjectHandler(db *database.DB) *ProjectHandler {
 
 func (h *ProjectHandler) CreateProject(c echo.Context) error {
 	userID := c.Get("user_id").(int)
+	fmt.Printf("Creating project for user ID: %d\n", userID)
 	
 	var req models.ProjectRequest
 	if err := c.Bind(&req); err != nil {
+		fmt.Printf("Bind error: %v\n", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "無効なリクエストボディです")
 	}
+	
+	fmt.Printf("Project request: name=%s, description=%s, file_id=%s\n", req.Name, req.Description, req.FileID)
 
 	// バリデーション
 	if err := h.validateProjectRequest(&req); err != nil {
+		fmt.Printf("Validation error: %v\n", err)
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
@@ -44,7 +49,8 @@ func (h *ProjectHandler) CreateProject(c echo.Context) error {
 	).Scan(&project.ID, &project.Name, &project.Description, &project.FileID, &project.UserID, &project.CreatedAt, &project.UpdatedAt)
 
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "プロジェクトの作成に失敗しました")
+		fmt.Printf("Database error during project creation: %v\n", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "プロジェクトの作成に失敗しました: "+err.Error())
 	}
 
 	response := models.ProjectResponse{

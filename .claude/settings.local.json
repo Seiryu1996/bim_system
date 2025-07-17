@@ -15,7 +15,17 @@
       "Bash(go run:*)",
       "Bash(npm:*)",
       "Bash(curl:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(source .env)",
+      "Bash(air:*)",
+      "Bash(go install:*)",
+      "Bash(kill:*)",
+      "Bash(sudo kill:*)",
+      "Bash(pkill:*)",
+      "Bash(ss:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)"
     ],
     "deny": []
   }

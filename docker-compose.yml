@@ -32,6 +32,11 @@ services:
       - DB_PASSWORD=password
       - JWT_SECRET=your-secret-key-here
       - PORT=8080
+      - FORGE_CLIENT_ID=${FORGE_CLIENT_ID}
+      - FORGE_CLIENT_SECRET=${FORGE_CLIENT_SECRET}
+      - FORGE_ENABLED=${FORGE_ENABLED}
+    volumes:
+      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,6 +52,7 @@ services:
       - VITE_API_URL=http://localhost:8080
       - VITE_FORGE_CLIENT_ID=your-forge-client-id
       - VITE_FORGE_CLIENT_SECRET=your-forge-client-secret
+      - VITE_FORGE_ENABLED=${VITE_FORGE_ENABLED}
     depends_on:
       - backend
     restart: unless-stopped

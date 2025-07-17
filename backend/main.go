@@ -39,8 +39,9 @@ func main() {
 	e.POST("/auth/register", authHandler.Register)
 	e.POST("/auth/login", authHandler.Login)
 	
-	// Test upload route (without authentication)
+	// Test upload route (without authentication) - using main upload function
 	e.POST("/test/upload", uploadHandler.UploadToForge)
+	e.GET("/test/status/:urn", uploadHandler.CheckTranslationStatus)
 
 	// Protected routes
 	api := e.Group("/api")
@@ -58,6 +59,9 @@ func main() {
 	api.POST("/forge/token", forgeHandler.GetForgeToken)
 	api.POST("/forge/upload", uploadHandler.UploadToForge)
 	api.GET("/forge/status/:urn", uploadHandler.CheckTranslationStatus)
+	
+	// Local file serving (development mode) - No authentication required
+	e.GET("/api/files/:objectKey", uploadHandler.ServeLocalFile)
 
 	// Health check
 	e.GET("/health", func(c echo.Context) error {

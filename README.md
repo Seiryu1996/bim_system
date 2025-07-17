@@ -12,12 +12,25 @@ Go言語バックエンド、Reactフロントエンド、PostgreSQLデータベ
   - Dockerコンテナ化
 
 - **フロントエンド (React + Vite)**
-  - Autodesk Forge Viewer統合
-  - 3Dモデル表示
-  - インタラクティブなオブジェクト選択
-  - リアルタイムプロパティ編集
-  - Redux Toolkit状態管理
-  - Tailwind CSSによるレスポンシブデザイン
+  - **3Dモデル表示機能**
+    - Autodesk Forge Viewer統合（本番環境）
+    - Three.js による開発環境での3D表示
+    - 環境変数による表示モード切り替え
+  - **3Dモデル作成機能**
+    - インタラクティブなモデル作成UI
+    - 建物・部屋・家具の3種類のモデルタイプ
+    - 寸法・材質・色のカスタマイズ
+    - OBJ/MTLファイル生成とアップロード
+  - **3D表示機能**
+    - インタラクティブなオブジェクト選択
+    - リアルタイムプロパティ編集
+    - ズーム機能（ボタン・マウスホイール対応）
+    - 材質と色の正確な反映
+    - 3Dプレビュー機能
+  - **UI/UX**
+    - Redux Toolkit状態管理
+    - Tailwind CSSによるレスポンシブデザイン
+    - 統一されたエラーメッセージ
 
 - **インフラストラクチャ**
   - ローカル開発用Docker Compose
@@ -96,21 +109,38 @@ Go言語バックエンド、Reactフロントエンド、PostgreSQLデータベ
 - `DB_PASSWORD`: データベースパスワード (デフォルト: password)
 - `JWT_SECRET`: JWT署名秘密鍵
 - `PORT`: サーバーポート (デフォルト: 8080)
+- `FORGE_CLIENT_ID`: Autodesk Forge クライアントID
+- `FORGE_CLIENT_SECRET`: Autodesk Forge クライアントシークレット
+- `FORGE_ENABLED`: Forge機能の有効化 (本番: true, 開発: false)
 
 ### フロントエンド
 - `VITE_API_URL`: バックエンドAPI URL (デフォルト: http://localhost:8080)
-
-### Forge認証（バックエンド）
-- `FORGE_CLIENT_ID`: Autodesk Forge クライアントID
-- `FORGE_CLIENT_SECRET`: Autodesk Forge クライアントシークレット
+- `VITE_FORGE_CLIENT_ID`: Forge クライアントID（フロントエンド用）
+- `VITE_FORGE_CLIENT_SECRET`: Forge クライアントシークレット（フロントエンド用）
+- `VITE_FORGE_ENABLED`: Forge機能の有効化 (本番: true, 開発: false)
 
 ## Forge App設定
+
+### 本番環境でのForge使用（オプション）
 
 1. [Autodesk Forge Console](https://forge.autodesk.com/)でアプリケーションを作成
 2. 以下のAPIを有効化:
    - Model Derivative API
    - Data Management API
 3. Client IDとClient Secretを`.env`ファイルに設定
+4. 環境変数を本番用に設定:
+   ```bash
+   FORGE_ENABLED=true
+   VITE_FORGE_ENABLED=true
+   ```
+
+### 開発環境での使用（推奨）
+
+開発環境ではForge不要で、Three.jsによる3D表示が利用できます:
+```bash
+FORGE_ENABLED=false
+VITE_FORGE_ENABLED=false
+```
 
 ## APIエンドポイント
 
@@ -125,6 +155,14 @@ Go言語バックエンド、Reactフロントエンド、PostgreSQLデータベ
 - `PUT /api/projects/:id` - プロジェクト更新
 - `DELETE /api/projects/:id` - プロジェクト削除
 - `PATCH /api/projects/:id/objects/:objectId` - オブジェクトプロパティ更新
+
+### ファイル管理 (認証必須)
+- `POST /api/forge/upload` - ファイルアップロード（OBJ/MTLファイル対応）
+- `GET /api/files/:objectKey` - ローカルファイル取得（開発モード）
+
+### Forge統合 (認証必須)
+- `POST /api/forge/token` - Forge認証トークン取得
+- `POST /api/forge/upload` - Forgeファイルアップロード
 
 ### ヘルスチェック
 - `GET /health` - ヘルスチェックエンドポイント
@@ -230,6 +268,7 @@ bim_system/
 │   ├── middleware/      # 認証およびCORSミドルウェア
 │   ├── models/          # データモデル
 │   ├── migrations/      # データベースマイグレーション
+│   ├── uploads/         # アップロードされたファイル（OBJ/MTL）
 │   ├── tmp/             # Air一時ファイル
 │   ├── .air.toml        # Air設定（ホットリロード）
 │   ├── Dockerfile       # 本番用コンテナ
@@ -240,6 +279,10 @@ bim_system/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/  # Reactコンポーネント
+│   │   │   ├── FileCreator.tsx    # 3Dモデル作成機能
+│   │   │   ├── ForgeViewer.tsx    # 3Dモデル表示機能
+│   │   │   ├── ProjectList.tsx    # プロジェクト一覧
+│   │   │   └── ...
 │   │   ├── services/    # APIサービス
 │   │   ├── store/       # Reduxストアとスライス
 │   │   ├── types/       # TypeScript型定義
@@ -252,5 +295,7 @@ bim_system/
 ├── docker-compose.yml   # 本番環境
 ├── docker-compose.dev.yml # 開発環境（ホットリロード）
 ├── render.yaml          # Renderデプロイ設定
-└── README.md           # このファイル
+├── README.md           # このファイル
+├── DEVELOPMENT.md      # 開発ガイド
+└── TROUBLESHOOTING.md  # トラブルシューティング
 ```

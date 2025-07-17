@@ -216,8 +216,37 @@ docker-compose up -d
 curl http://localhost:8080/health
 ```
 
+## 新機能の開発
+
+### 3Dモデル作成機能の拡張
+
+現在実装されている3Dモデル作成機能の拡張方法:
+
+1. **新しいモデルタイプの追加**
+   - `FileCreator.tsx` の `modelTypes` 配列に新しいタイプを追加
+   - 対応する3D形状生成関数を実装
+   - OBJファイル生成関数も追加
+
+2. **新しい材質の追加**
+   - `materialColors` オブジェクトに新しい材質を追加
+   - MTLファイル生成で材質固有のプロパティを設定
+
+### デバッグとテスト
+
+```bash
+# 3Dモデル作成のテスト
+# 1. モデル作成UIで各パラメータを調整
+# 2. プレビューで形状を確認
+# 3. ファイル作成後、プロジェクトに反映されることを確認
+
+# APIエンドポイントのテスト
+curl -X POST http://localhost:8080/api/forge/upload \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@test_model.obj"
+```
+
 ## 関連ドキュメント
 
 - [README.md](./README.md) - 基本的な使用方法
-- [API仕様書](./API.md) - バックエンドAPIの詳細
-- [デプロイガイド](./DEPLOY.md) - 本番環境への展開方法
+- [API.md](./API.md) - バックエンドAPIの詳細
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - トラブルシューティング
