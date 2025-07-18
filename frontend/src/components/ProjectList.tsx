@@ -10,6 +10,8 @@ const ProjectList: React.FC = () => {
   const { projects, isLoading, error } = useSelector((state: RootState) => state.project);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showFileCreator, setShowFileCreator] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<ProjectRequest>({
@@ -46,9 +48,11 @@ const ProjectList: React.FC = () => {
       errors.file_id = '有効なファイルIDまたはURNを入力してください';
     }
 
-    // 重複チェック
+    // 重複チェック（編集中のプロジェクトは除外）
     const isDuplicate = projects.some(
-      (project: any) => project.name.toLowerCase() === formData.name.trim().toLowerCase()
+      (project: any) => 
+        project.name.toLowerCase() === formData.name.trim().toLowerCase() &&
+        project.id !== editingProject?.id
     );
     if (isDuplicate) {
       errors.name = '同じ名前のプロジェクトが既に存在します';
@@ -114,6 +118,53 @@ const ProjectList: React.FC = () => {
 
   const handleViewProject = (project: any) => {
     dispatch(setCurrentProject(project));
+  };
+
+  const handleEditProject = (project: any) => {
+    setEditingProject(project);
+    setFormData({
+      name: project.name,
+      description: project.description,
+      file_id: project.file_id
+    });
+    setValidationErrors({});
+    setShowEditForm(true);
+  };
+
+  const handleUpdateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm() || !editingProject) {
+      return;
+    }
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${API_URL}/api/projects/${editingProject.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        await dispatch(fetchProjects() as any); // プロジェクト一覧を再取得
+        setShowEditForm(false);
+        setEditingProject(null);
+        setFormData({ name: '', description: '', file_id: '' });
+        setValidationErrors({});
+        alert('プロジェクトが更新されました');
+      } else {
+        const errorData = await response.json();
+        setValidationErrors({ general: errorData.message || 'プロジェクトの更新に失敗しました' });
+      }
+    } catch (error: any) {
+      setValidationErrors({ general: 'プロジェクトの更新に失敗しました: ' + error.message });
+    }
   };
 
   const handleCreateSampleProject = async () => {
@@ -363,6 +414,12 @@ const ProjectList: React.FC = () => {
                 モデル表示
               </button>
               <button
+                onClick={() => handleEditProject(project)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+              >
+                編集
+              </button>
+              <button
                 onClick={() => handleDeleteProject(project.id)}
                 className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
               >
@@ -377,6 +434,93 @@ const ProjectList: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* プロジェクト編集モーダル */}
+      {showEditForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">プロジェクトを編集</h2>
+            
+            {/* 全般的なエラー表示 */}
+            {validationErrors.general && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {validationErrors.general}
+              </div>
+            )}
+            
+            <form onSubmit={handleUpdateProject}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">プロジェクト名</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  required
+                />
+                {validationErrors.name && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
+                )}
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">説明</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    validationErrors.description ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  rows={3}
+                />
+                {validationErrors.description && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.description}</p>
+                )}
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">ファイル識別子</label>
+                <input
+                  type="text"
+                  value={formData.file_id}
+                  onChange={(e) => setFormData({ ...formData, file_id: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                    validationErrors.file_id ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                  placeholder="URN または ファイル名"
+                  required
+                />
+                {validationErrors.file_id && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.file_id}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  BIMファイルのURNまたはファイル名を入力してください
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  更新
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditForm(false);
+                    setEditingProject(null);
+                    setFormData({ name: '', description: '', file_id: '' });
+                    setValidationErrors({});
+                  }}
+                  className="flex-1 bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ファイル作成モーダル */}
       {showFileCreator && (
